@@ -25,7 +25,7 @@ local function getGitHubUserContentAsJSON(repo, branch, resource)
         local rawData = response.readAll()
         response.close()
         if rawData then
-            local data = textutils.unserialize(rawData)
+            local data = textutils.unserializeJSON(rawData)
             if data then
                 return data
             else
