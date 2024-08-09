@@ -48,8 +48,8 @@ local function getAppList()
     return getGitHubUserContentAsJSON("glektarssza/cctweaked-apps", "chore/setup", "apps.json")
 end
 
---- The application entry point.
-local function main()
+--- Get a list of known applications from the repository.
+local function listApps()
     local apps, appsError = getAppList()
     if apps then
         print("Known Apps:")
@@ -66,4 +66,91 @@ local function main()
     end
 end
 
-main()
+--- Print help information for the application.
+local function printHelp()
+    print("G'lek's CC: Tweaked App Installer")
+    print("Usage: installer [options...] command")
+    print("Options:")
+    print("  -h, --help Print this help information.")
+    print("  --version  Print the version of this program.")
+    print("")
+    print("Commands:")
+    print("  about      Print information about this program.")
+    print("  help       Print this help information.")
+    print("  version    Print the version of this program.")
+    print("  list       List all known applications.")
+    print("  install    Install an application.")
+    print("  remove     Remove an application.")
+    print("  update     Update an application.")
+    print("")
+    print("Copyright (c) 2024 G'lek Tarssza")
+    print("All rights reserved.")
+end
+
+local function printVersion()
+    print("G'lek's CC: Tweaked App Installer v0.0.1")
+end
+
+--- Parse the command line arguments.
+--- @param args string[] The command line arguments.
+--- @return table<string, string>|nil arguments The parsed arguments.
+--- @return string[]|nil remainingArgs The remaining arguments after the parsed arguments.
+--- @return string|nil message The error message if the arguments could not be parsed.
+local function parseArguments(args)
+    local parsedArgs = {}
+    local remainingArgs = {}
+    for i, arg in ipairs(args) do
+        if arg:sub(1, 1) == "-" then
+            if arg == "-h" or arg == "--help" then
+                parsedArgs.help = "true"
+            elseif arg == "--version" then
+                parsedArgs.version = "true"
+            else
+                return nil, nil, "Unknown command line option \"" .. arg .. "\""
+            end
+        else
+            if parsedArgs.command then
+                return nil, nil, "Multiple commands specified"
+            end
+            parsedArgs.command = arg
+            for j = i + 1, #args do
+                table.insert(remainingArgs, args[j])
+            end
+        end
+    end
+    return parsedArgs, remainingArgs
+end
+
+--- The application entry point.
+--- @param args string[] The command line arguments.
+local function main(args)
+    local parsedArgs, remainingArgs, parseError = parseArguments(args)
+    if not parsedArgs then
+        printError("Error: " .. parseError)
+        return
+    end
+
+    if parsedArgs.help then
+        printHelp()
+        return
+    end
+
+    if parsedArgs.version then
+        printVersion()
+        return
+    end
+
+    if not parsedArgs.command then
+        printError("Error: No command specified")
+        return
+    end
+
+    if parsedArgs.command == "list" then
+        listApps()
+        return
+    end
+
+    printError("Error: Unknown command \"" .. parsedArgs.command .. "\"")
+end
+
+main(arg)
