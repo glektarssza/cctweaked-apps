@@ -1,6 +1,16 @@
 -- The main installer script for all applications hosted in this repository.
 
+--- The repository owner to request from.
+local OWNER = "glektarssza"
+
+--- The repository to request from.
+local REPOSITORY = "cctweaked-apps"
+
+--- The branch to request from the repository.
+local REPO_BRANCH = "chore/setup"
+
 --- Send a GET request to the GitHub user content server for a specific raw resource.
+--- @param owner string The owner of the repository to request from.
 --- @param repo string The repository to request from.
 --- @param branch string The branch to request from.
 --- @param resource string The resource to request.
@@ -9,18 +19,20 @@
 --- @return ccTweaked.http.BinaryResponse|ccTweaked.http.Response|nil response The response object or `nil` if the request failed.
 --- @return string message The error message if the request failed.
 --- @return ccTweaked.http.BinaryResponse|ccTweaked.http.Response|nil failedResponse The response object if the request failed.
-local function getRawGitHubUserContent(repo, branch, resource, headers, binary)
-    return http.get("https://raw.githubusercontent.com/" .. repo .. "/" .. branch .. "/" .. resource, headers, binary)
+local function getRawGitHubUserContent(owner, repo, branch, resource, headers, binary)
+    return http.get("https://raw.githubusercontent.com/" .. owner .. "/" .. repo .. "/" .. branch .. "/" .. resource,
+        headers, binary)
 end
 
 --- Get a resource from a GitHub repository and parse it as a JSON object.
+--- @param owner string The owner of the repository to request from.
 --- @param repo string The repository to request from.
 --- @param branch string The branch to request from.
 --- @param resource string The resource to request.
 --- @return table|nil response The JSON object or `nil` if the request failed.
 --- @return string|nil message The error message if the request failed.
-local function getGitHubUserContentAsJSON(repo, branch, resource)
-    local response, responseMessage, failedResponse = getRawGitHubUserContent(repo, branch, resource)
+local function getGitHubUserContentAsJSON(owner, repo, branch, resource)
+    local response, responseMessage, failedResponse = getRawGitHubUserContent(owner, repo, branch, resource)
     if response then
         local rawData = response.readAll()
         response.close()
@@ -35,17 +47,25 @@ local function getGitHubUserContentAsJSON(repo, branch, resource)
         return nil, "Failed to read response (unexpected end of data)"
     end
     if failedResponse then
-        return nil, "Failed to get resource (" .. failedResponse.getResponseCode() .. "-" .. responseMessage .. ")"
+        return nil, "Failed to get resource (" .. failedResponse.getResponseCode() .. " - " .. responseMessage .. ")"
     else
         return nil, "Failed to get resource (" .. responseMessage .. ")"
     end
+end
+
+--- Get the manifest for an application.
+--- @param appName string The name of the application to get the manifest for.
+--- @return table|nil manifest The manifest for the application or `nil` if the request failed.
+--- @return string|nil message The error message if the request failed.
+local function getAppManifest(appName)
+    return getGitHubUserContentAsJSON(OWNER, REPOSITORY, REPO_BRANCH, "apps/" .. appName .. "/manifest.json")
 end
 
 --- Get a list of known applications from the repository.
 --- @return string[]|nil apps The list of known applications.
 --- @return string|nil message The error message if the request failed.
 local function getAppList()
-    return getGitHubUserContentAsJSON("glektarssza/cctweaked-apps", "chore/setup", "apps.json")
+    return getGitHubUserContentAsJSON(OWNER, REPOSITORY, REPO_BRANCH, "apps.json")
 end
 
 --- Print the version of the program.
@@ -142,6 +162,90 @@ local function listApps(remainingArgs)
     else
         printError("Error: Failed to get list of known applications (" .. appsError .. ")")
         return
+    end
+end
+
+--- Parse the arguments for the `info` command.
+--- @param args string[] The command line arguments.
+--- @return table<string, string>|nil parsedArgs The parsed arguments.
+--- @return string[]|nil remainingArgs The remaining arguments after the parsed arguments.
+--- @return string|nil message The error message if the arguments could not be parsed.
+local function parseShowAppInfoArgs(args)
+    local parsedArgs = {}
+    local remainingArgs = {}
+    for i, arg in ipairs(args) do
+        if arg:sub(1, 1) == "-" then
+            if arg == "-h" or arg == "--help" then
+                parsedArgs.help = "true"
+            elseif arg == "--version" then
+                parsedArgs.version = "true"
+            else
+                return nil, nil, "Unknown command line option \"" .. arg .. "\""
+            end
+        else
+            parsedArgs.appName = arg
+            for j = i + 1, #args do
+                table.insert(remainingArgs, args[j])
+            end
+            break
+        end
+    end
+    return parsedArgs, remainingArgs
+end
+
+--- Print help information for the `info` command.
+local function printShowAppInfoHelp()
+    print("G'lek's CC: Tweaked App Installer")
+    print("Usage: installer [options...] info [command_options...] appName")
+    print("Options:")
+    print("  -h, --help Print this help information.")
+    print("  --version  Print the version of this program.")
+    print("Command Options:")
+    print("  N/A")
+    print("")
+    print("Arguments:")
+    print("  appName     The name of the application to get information about.")
+    print("")
+    print("Copyright (c) 2024 G'lek Tarssza")
+    print("All rights reserved.")
+end
+
+--- Show information about an application.
+local function showAppInfo(args)
+    local parsedArgs = nil
+    local appName = nil
+
+    if args then
+        parsedArgs = parseShowAppInfoArgs(args)
+    end
+
+    if parsedArgs then
+        if parsedArgs.help == "true" then
+            printShowAppInfoHelp()
+            return
+        end
+        if parsedArgs.version == "true" then
+            printVersion()
+            return
+        end
+        appName = parsedArgs.appName
+    end
+
+    if not appName then
+        printError("Error: No application specified")
+        return
+    end
+
+    local manifest, manifestError = getAppManifest(appName)
+    if manifest then
+        print("ID: " .. manifest.id)
+        print("Name: " .. manifest.name)
+        print("Version: " .. manifest.version)
+        print("Description: " .. manifest.description)
+        print("Can be auto-booted: " .. (manifest.autoBoot and "Yes" or "No"))
+        print("File Count: " .. #manifest.files)
+    else
+        printError("Error: Failed to get information about application \"" .. appName .. "\" (" .. manifestError .. ")")
     end
 end
 
@@ -243,7 +347,7 @@ local function main(args)
         listApps(remainingArgs)
         return
     elseif parsedArgs.command == "info" then
-        printError("Error: The info command is not yet implemented")
+        showAppInfo(remainingArgs)
         return
     elseif parsedArgs.command == "install" then
         printError("Error: The install command is not yet implemented")
