@@ -414,9 +414,15 @@ local function installApp(args)
     end
 
     if autoBoot then
-        term.setTextColor(colors.yellow)
-        print("Warning: Auto-booting is not supported yet!")
-        term.setTextColor(colors.white)
+        local startupHandle = fs.open("/startup.lua", "w")
+        if startupHandle then
+            startupHandle.write("shell.run(\"" .. installDir .. "/" .. manifest.entrypoint .. "\")")
+            startupHandle.close()
+        else
+            printError("Error: Failed to write startup file")
+            fs.delete(installDir)
+            return
+        end
     end
 
     print("Application \"" .. appName .. "\" has been installed")
