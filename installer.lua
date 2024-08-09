@@ -118,13 +118,13 @@ local function parseListAppsArgs(args)
 end
 
 --- Get a list of known applications from the repository.
---- @param remainingArgs? string[] The remaining arguments after the command.
-local function listApps(remainingArgs)
+--- @param args? string[] The remaining arguments after the command.
+local function listApps(args)
     local parsedArgs = nil
     local query = nil
 
-    if remainingArgs then
-        parsedArgs = parseListAppsArgs(remainingArgs)
+    if args then
+        parsedArgs = parseListAppsArgs(args)
     end
 
     if parsedArgs then
@@ -211,6 +211,7 @@ local function printShowAppInfoHelp()
 end
 
 --- Show information about an application.
+--- @param args string[] The command line arguments.
 local function showAppInfo(args)
     local parsedArgs = nil
     local appName = nil
@@ -247,6 +248,208 @@ local function showAppInfo(args)
     else
         printError("Error: Failed to get information about application \"" .. appName .. "\" (" .. manifestError .. ")")
     end
+end
+
+--- Install an application.
+--- @param args string[] The command line arguments.
+local function installApp(args)
+    printError("Error: The install command is not yet implemented")
+end
+
+--- Remove a previously installed application.
+--- @param args string[] The command line arguments.
+local function removeApp(args)
+    printError("Error: The remove command is not yet implemented")
+end
+
+--- Parse the arguments for the `update` command.
+--- @param args string[] The command line arguments.
+--- @return table<string, string>|nil parsedArgs The parsed arguments.
+--- @return string[]|nil remainingArgs The remaining arguments after the parsed arguments.
+--- @return string|nil message The error message if the arguments could not be parsed.
+local function parseUpdateAppArgs(args)
+    local parsedArgs = {}
+    local remainingArgs = {}
+    local skipNext = false
+    for i, arg in ipairs(args) do
+        if skipNext then
+            skipNext = false
+            goto continue
+        end
+        if arg:sub(1, 1) == "-" then
+            if arg == "-h" or arg == "--help" then
+                parsedArgs.help = "true"
+            elseif arg == "--version" then
+                parsedArgs.version = "true"
+            elseif arg:match("--temp-dir=") then
+                parsedArgs.tempDir = arg:sub(#"--temp-dir=" + 1)
+            elseif arg == "--temp-dir" then
+                if not args[i + 1] then
+                    return nil, nil, "Missing value for --temp-dir option"
+                end
+                parsedArgs.tempDir = args[i + 1]
+                skipNext = true
+            elseif arg:match("--install-dir=") then
+                parsedArgs.installDir = arg:sub(#"--install-dir=" + 1)
+            elseif arg == "--install-dir" then
+                if not args[i + 1] then
+                    return nil, nil, "Missing value for --install-dir option"
+                end
+                parsedArgs.installDir = args[i + 1]
+                skipNext = true
+            else
+                return nil, nil, "Unknown command line option \"" .. arg .. "\""
+            end
+        else
+            parsedArgs.appName = arg
+            for j = i + 1, #args do
+                table.insert(remainingArgs, args[j])
+            end
+            break
+        end
+        ::continue::
+    end
+    return parsedArgs, remainingArgs
+end
+
+--- Print help information for the `update` command.
+local function printUpdateAppHelp()
+    print("G'lek's CC: Tweaked App Installer")
+    print("Usage: installer [options...] update [command_options...] appName")
+    print("Options:")
+    print("  -h, --help           Print this help information.")
+    print("  --version            Print the version of this program.")
+    print("Command Options:")
+    print("  --temp-dir[=path]    The temporary directory to use for downloading files.")
+    print("  --install-dir[=path] The directory the application to update is installed to.")
+    print("")
+    print("Arguments:")
+    print("  appName              The name of the application to update.")
+    print("")
+    print("Copyright (c) 2024 G'lek Tarssza")
+    print("All rights reserved.")
+end
+
+--- Update an application.
+--- @param args? string[] The command line arguments.
+local function updateApp(args)
+    local parsedArgs = nil
+    local appName = nil
+    local tempDir = nil
+    local installDir = nil
+
+    if args then
+        parsedArgs = parseUpdateAppArgs(args)
+    end
+
+    if parsedArgs then
+        if parsedArgs.help == "true" then
+            printUpdateAppHelp()
+            return
+        end
+        if parsedArgs.version == "true" then
+            printVersion()
+            return
+        end
+        appName = parsedArgs.appName
+        tempDir = parsedArgs.tempDir
+        installDir = parsedArgs.installDir
+    end
+
+    if not appName then
+        printError("Error: No application specified")
+        return
+    end
+
+    if not tempDir then
+        tempDir = "/.tmp"
+    end
+
+    if not installDir then
+        installDir = "/apps/" .. appName
+    end
+
+    local manifest, manifestError = getAppManifest(appName)
+
+    if not manifest then
+        printError("Error: Failed to get information about application \"" .. appName .. "\" (" .. manifestError .. ")")
+        return
+    end
+
+    local installDirExists = fs.exists(installDir)
+    if not installDirExists then
+        printError("Error: Application \"" .. appName .. "\" is not installed")
+        return
+    end
+
+    local installDirIsDir = fs.isDir(installDir)
+    if not installDirIsDir then
+        printError("Error: Application \"" .. appName .. "\" is not installed")
+        return
+    end
+
+    local tempDirExists = fs.exists(tempDir)
+    if not tempDirExists then
+        fs.makeDir(tempDir)
+    end
+
+    local tempDirIsDir = fs.isDir(tempDir)
+    if not tempDirIsDir then
+        printError("Error: The temporary directory is not a directory")
+        return
+    end
+
+    local tempDirEmpty = fs.list(tempDir)
+    if #tempDirEmpty > 0 then
+        printError("Error: The temporary directory is not empty")
+        return
+    end
+
+    local files = manifest.files
+
+    for _, file in ipairs(files) do
+        local response, responseMessage, failedResponse = getRawGitHubUserContent(OWNER, REPOSITORY, REPO_BRANCH,
+            "apps/" .. appName .. "/" .. file, nil, true)
+        if response then
+            local fileData = response.readAll()
+            response.close()
+            if fileData then
+                local filePath = fs.combine(tempDir, file)
+                local fileHandle = fs.open(filePath, "w")
+                if fileHandle then
+                    fileHandle.write(fileData)
+                    fileHandle.close()
+                else
+                    printError("Error: Failed to write file \"" .. file .. "\" to temporary directory")
+                    return
+                end
+            else
+                printError("Error: Failed to read file \"" .. file .. "\" from response")
+                return
+            end
+        else
+            if failedResponse then
+                printError("Error: Failed to get file \"" ..
+                    file .. "\" (" .. failedResponse.getResponseCode() .. " - " ..
+                    responseMessage .. ")")
+            else
+                printError("Error: Failed to get file \"" .. file .. "\" (" .. responseMessage .. ")")
+            end
+            return
+        end
+    end
+
+    local installDirFiles = fs.list(installDir)
+
+    for _, file in ipairs(installDirFiles) do
+        fs.delete(fs.combine(installDir, file))
+    end
+
+    for _, file in ipairs(files) do
+        fs.move(fs.combine(tempDir, file), fs.combine(installDir, file))
+    end
+
+    print("Application \"" .. appName .. "\" has been updated to version " .. manifest.version)
 end
 
 --- Print the program about information.
@@ -350,13 +553,13 @@ local function main(args)
         showAppInfo(remainingArgs)
         return
     elseif parsedArgs.command == "install" then
-        printError("Error: The install command is not yet implemented")
+        installApp(remainingArgs)
         return
     elseif parsedArgs.command == "remove" then
-        printError("Error: The remove command is not yet implemented")
+        removeApp(remainingArgs)
         return
     elseif parsedArgs.command == "update" then
-        printError("Error: The update command is not yet implemented")
+        updateApp(remainingArgs)
         return
     end
 
