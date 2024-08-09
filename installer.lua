@@ -250,16 +250,285 @@ local function showAppInfo(args)
     end
 end
 
+--- Print help information for the `install` command.
+local function printInstallAppHelp()
+    print("G'lek's CC: Tweaked App Installer")
+    print("Usage: installer [options...] install [command_options...] appName")
+    print("Options:")
+    print("  -h, --help           Print this help information.")
+    print("  --version            Print the version of this program.")
+    print("Command Options:")
+    print("  --install-dir[=path] The directory the application is to be installed to.")
+    print("  --auto-boot          Whether to enable auto-booting the application (if supported).")
+    print("")
+    print("Arguments:")
+    print("  appName              The name of the application to install.")
+    print("")
+    print("Copyright (c) 2024 G'lek Tarssza")
+    print("All rights reserved.")
+end
+
+--- Parse the arguments for the `remove` command.
+--- @param args string[] The command line arguments.
+--- @return table<string, string>|nil parsedArgs The parsed arguments.
+--- @return string[]|nil remainingArgs The remaining arguments after the parsed arguments.
+--- @return string|nil message The error message if the arguments could not be parsed.
+local function parseInstallAppArgs(args)
+    local parsedArgs = {}
+    local remainingArgs = {}
+    local skipNext = false
+    for i, arg in ipairs(args) do
+        if skipNext then
+            skipNext = false
+            goto continue
+        end
+        if arg:sub(1, 1) == "-" then
+            if arg == "-h" or arg == "--help" then
+                parsedArgs.help = "true"
+            elseif arg == "--version" then
+                parsedArgs.version = "true"
+            elseif arg == "--auto-boot" then
+                parsedArgs.autoBoot = "true"
+            elseif arg:match("--install-dir=") then
+                parsedArgs.installDir = arg:sub(#"--install-dir=" + 1)
+            elseif arg == "--install-dir" then
+                if not args[i + 1] then
+                    return nil, nil, "Missing value for --install-dir option"
+                end
+                parsedArgs.installDir = args[i + 1]
+                skipNext = true
+            else
+                return nil, nil, "Unknown command line option \"" .. arg .. "\""
+            end
+        else
+            parsedArgs.appName = arg
+            for j = i + 1, #args do
+                table.insert(remainingArgs, args[j])
+            end
+            break
+        end
+        ::continue::
+    end
+    return parsedArgs, remainingArgs
+end
+
 --- Install an application.
 --- @param args string[] The command line arguments.
 local function installApp(args)
-    printError("Error: The install command is not yet implemented")
+    local parsedArgs = nil
+    local appName = nil
+    local installDir = nil
+    local autoBoot = nil
+
+    if args then
+        parsedArgs = parseInstallAppArgs(args)
+    end
+
+    if parsedArgs then
+        if parsedArgs.help == "true" then
+            printInstallAppHelp()
+            return
+        end
+        if parsedArgs.version == "true" then
+            printVersion()
+            return
+        end
+        appName = parsedArgs.appName
+        installDir = parsedArgs.installDir
+        autoBoot = parsedArgs.autoBoot
+    end
+
+    if not appName then
+        printError("Error: No application specified")
+        return
+    end
+
+    local manifest, manifestError = getAppManifest(appName)
+    if not manifest then
+        printError("Error: Failed to get information about application \"" .. appName .. "\" (" .. manifestError .. ")")
+        return
+    end
+
+    if not installDir then
+        installDir = "/apps/" .. appName
+    end
+
+    local installDirExists = fs.exists(installDir)
+    if installDirExists then
+        local installDirIsDir = fs.isDir(installDir)
+        if not installDirIsDir then
+            printError("Error: Cannot install \"" .. appName .. "\" to requested directory (it's not a directory)")
+            return
+        end
+        local installDirEmpty = fs.list(installDir)
+        if #installDirEmpty > 0 then
+            printError("Error: Cannot install \"" .. appName .. "\" to requested directory (it's not empty)")
+            return
+        end
+    else
+        fs.makeDir(installDir)
+    end
+
+    local files = manifest.files
+
+    for _, file in ipairs(files) do
+        local response, responseMessage, failedResponse = getRawGitHubUserContent(OWNER, REPOSITORY, REPO_BRANCH,
+            "apps/" .. appName .. "/" .. file, nil, true)
+        if response then
+            local fileData = response.readAll()
+            response.close()
+            if fileData then
+                local fileHandle = fs.open(fs.combine(installDir, file), "w")
+                if fileHandle then
+                    fileHandle.write(fileData)
+                    fileHandle.close()
+                else
+                    printError("Error: Failed to write file \"" .. file .. "\" to installation directory")
+                    fs.delete(installDir)
+                    return
+                end
+            else
+                printError("Error: Failed to read file \"" .. file .. "\" from response")
+                fs.delete(installDir)
+                return
+            end
+        else
+            if failedResponse then
+                printError("Error: Failed to get file \"" ..
+                    file .. "\" (" .. failedResponse.getResponseCode() .. " - " ..
+                    responseMessage .. ")")
+            else
+                printError("Error: Failed to get file \"" .. file .. "\" (" .. responseMessage .. ")")
+            end
+        end
+    end
+
+    local manifestHandle = fs.open(fs.combine(installDir, "manifest.json"), "w")
+    if manifestHandle then
+        manifestHandle.write(textutils.serializeJSON(manifest))
+        manifestHandle.close()
+    else
+        printError("Error: Failed to write manifest file to installation directory")
+        fs.delete(installDir)
+        return
+    end
+
+    if autoBoot then
+        term.setTextColor(colors.yellow)
+        print("Warning: Auto-booting is not supported yet!")
+        term.setTextColor(colors.white)
+    end
+
+    print("Application \"" .. appName .. "\" has been installed")
+end
+
+--- Print help information for the `remove` command.
+local function printRemoveAppHelp()
+    print("G'lek's CC: Tweaked App Installer")
+    print("Usage: installer [options...] remove [command_options...] appName")
+    print("Options:")
+    print("  -h, --help           Print this help information.")
+    print("  --version            Print the version of this program.")
+    print("Command Options:")
+    print("  --install-dir[=path] The directory the application to remove is installed to.")
+    print("")
+    print("Arguments:")
+    print("  appName              The name of the application to remove.")
+    print("")
+    print("Copyright (c) 2024 G'lek Tarssza")
+    print("All rights reserved.")
+end
+
+--- Parse the arguments for the `remove` command.
+--- @param args string[] The command line arguments.
+--- @return table<string, string>|nil parsedArgs The parsed arguments.
+--- @return string[]|nil remainingArgs The remaining arguments after the parsed arguments.
+--- @return string|nil message The error message if the arguments could not be parsed.
+local function parseRemoveAppArgs(args)
+    local parsedArgs = {}
+    local remainingArgs = {}
+    local skipNext = false
+    for i, arg in ipairs(args) do
+        if skipNext then
+            skipNext = false
+            goto continue
+        end
+        if arg:sub(1, 1) == "-" then
+            if arg == "-h" or arg == "--help" then
+                parsedArgs.help = "true"
+            elseif arg == "--version" then
+                parsedArgs.version = "true"
+            elseif arg:match("--install-dir=") then
+                parsedArgs.installDir = arg:sub(#"--install-dir=" + 1)
+            elseif arg == "--install-dir" then
+                if not args[i + 1] then
+                    return nil, nil, "Missing value for --install-dir option"
+                end
+                parsedArgs.installDir = args[i + 1]
+                skipNext = true
+            else
+                return nil, nil, "Unknown command line option \"" .. arg .. "\""
+            end
+        else
+            parsedArgs.appName = arg
+            for j = i + 1, #args do
+                table.insert(remainingArgs, args[j])
+            end
+            break
+        end
+        ::continue::
+    end
+    return parsedArgs, remainingArgs
 end
 
 --- Remove a previously installed application.
 --- @param args string[] The command line arguments.
 local function removeApp(args)
-    printError("Error: The remove command is not yet implemented")
+    local parsedArgs = nil
+    local appName = nil
+    local installDir = nil
+
+    if args then
+        parsedArgs = parseRemoveAppArgs(args)
+    end
+
+    if parsedArgs then
+        if parsedArgs.help == "true" then
+            printRemoveAppHelp()
+            return
+        end
+        if parsedArgs.version == "true" then
+            printVersion()
+            return
+        end
+        appName = parsedArgs.appName
+        installDir = parsedArgs.installDir
+    end
+
+    if not appName then
+        printError("Error: No application specified")
+        return
+    end
+
+    if not installDir then
+        installDir = "/apps/" .. appName
+    end
+
+    local installDirExists = fs.exists(installDir)
+    if not installDirExists then
+        printError("Error: Application \"" .. appName .. "\" is not installed")
+        return
+    end
+
+    local installDirIsDir = fs.isDir(installDir)
+    if not installDirIsDir then
+        printError("Error: Application \"" .. appName .. "\" is not installed")
+        return
+    end
+
+    fs.delete(installDir)
+
+    print("Application \"" .. appName .. "\" has been removed")
 end
 
 --- Parse the arguments for the `update` command.
@@ -421,10 +690,12 @@ local function updateApp(args)
                     fileHandle.close()
                 else
                     printError("Error: Failed to write file \"" .. file .. "\" to temporary directory")
+                    fs.delete(tempDir)
                     return
                 end
             else
                 printError("Error: Failed to read file \"" .. file .. "\" from response")
+                fs.delete(tempDir)
                 return
             end
         else
@@ -435,6 +706,7 @@ local function updateApp(args)
             else
                 printError("Error: Failed to get file \"" .. file .. "\" (" .. responseMessage .. ")")
             end
+            fs.delete(tempDir)
             return
         end
     end
@@ -449,7 +721,18 @@ local function updateApp(args)
         fs.move(fs.combine(tempDir, file), fs.combine(installDir, file))
     end
 
-    fs.write(fs.combine(installDir, "manifest.json"), textutils.serializeJSON(manifest))
+    local manifestHandle = fs.open(fs.combine(installDir, "manifest.json"), "w")
+    if manifestHandle then
+        manifestHandle.write(textutils.serializeJSON(manifest))
+        manifestHandle.close()
+    else
+        printError("Error: Failed to write manifest file to installation directory")
+        fs.delete(installDir)
+        fs.delete(tempDir)
+        return
+    end
+
+    fs.delete(tempDir)
 
     print("Application \"" .. appName .. "\" has been updated to version " .. manifest.version)
 end
