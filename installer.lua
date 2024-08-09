@@ -145,7 +145,13 @@ local function main(args)
         return
     end
 
-    if parsedArgs.command == "list" then
+    if parsedArgs.command == "help" then
+        printHelp()
+        return
+    elseif parsedArgs.command == "version" then
+        printVersion()
+        return
+    elseif parsedArgs.command == "list" then
         listApps()
         return
     end
