@@ -3,6 +3,8 @@
         "github.remotehub",
         "github.vscode-pull-request-github",
         "github.vscode-github-actions",
-        "sumneko.lua"
+        "sumneko.lua",
+        "jackmacwindows.vscode-computercraft",
+        "jackmacwindows.craftos-pc"
     ]
 }
