@@ -449,6 +449,8 @@ local function updateApp(args)
         fs.move(fs.combine(tempDir, file), fs.combine(installDir, file))
     end
 
+    fs.write(fs.combine(installDir, "manifest.json"), textutils.serializeJSON(manifest))
+
     print("Application \"" .. appName .. "\" has been updated to version " .. manifest.version)
 end
 
