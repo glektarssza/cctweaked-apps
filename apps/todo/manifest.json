@@ -1,9 +1,10 @@
 {
-    "name": "todo",
+    "id": "todo",
+    "name": "To Do",
     "version": "0.0.0",
     "description": "A simple to do list app.",
     "entrypoint": "main.lua",
-    "autoboot": true,
+    "autoBoot": true,
     "files": [
         "./main.lua"
     ]
