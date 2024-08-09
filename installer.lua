@@ -7,7 +7,7 @@ local OWNER = "glektarssza"
 local REPOSITORY = "cctweaked-apps"
 
 --- The branch to request from the repository.
-local REPO_BRANCH = "chore/setup"
+local REPO_BRANCH = "main"
 
 --- Send a GET request to the GitHub user content server for a specific raw resource.
 --- @param owner string The owner of the repository to request from.
