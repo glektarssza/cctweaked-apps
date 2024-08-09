@@ -66,7 +66,18 @@ local function listApps()
     end
 end
 
---- Print help information for the application.
+--- Print the program about information.
+local function printAbout()
+    print("G'lek's CC: Tweaked App Installer")
+    print("This program is a simple installer for applications hosted in the complimentary GitHub repository.")
+    print("For more information, please visit the GitHub repository.")
+    print("https://github.com/glektarssza/cctweaked-apps")
+    print("")
+    print("Copyright (c) 2024 G'lek Tarssza")
+    print("All rights reserved.")
+end
+
+--- Print help information for the program.
 local function printHelp()
     print("G'lek's CC: Tweaked App Installer")
     print("Usage: installer [options...] command")
@@ -87,6 +98,7 @@ local function printHelp()
     print("All rights reserved.")
 end
 
+--- Print the version of the program.
 local function printVersion()
     print("G'lek's CC: Tweaked App Installer v0.0.1")
 end
@@ -146,7 +158,7 @@ local function main(args)
     end
 
     if parsedArgs.command == "about" then
-        printError("Error: The about command is not yet implemented")
+        printAbout()
         return
     elseif parsedArgs.command == "help" then
         printHelp()
