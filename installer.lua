@@ -48,15 +48,94 @@ local function getAppList()
     return getGitHubUserContentAsJSON("glektarssza/cctweaked-apps", "chore/setup", "apps.json")
 end
 
+--- Print the version of the program.
+local function printVersion()
+    print("G'lek's CC: Tweaked App Installer v0.0.1")
+end
+
+local function printListAppsHelp()
+    print("G'lek's CC: Tweaked App Installer")
+    print("Usage: installer [options...] list [command_options...] [query]")
+    print("Options:")
+    print("  -h, --help Print this help information.")
+    print("  --version  Print the version of this program.")
+    print("Command Options:")
+    print("  N/A")
+    print("")
+    print("Arguments:")
+    print("  query      The query to search for in the list of known applications.")
+    print("")
+    print("Copyright (c) 2024 G'lek Tarssza")
+    print("All rights reserved.")
+end
+
+--- Parse the arguments for the `list` command.
+--- @param args string[] The command line arguments.
+--- @return table<string, string>|nil parsedArgs The parsed arguments.
+--- @return string[]|nil remainingArgs The remaining arguments after the parsed arguments.
+--- @return string|nil message The error message if the arguments could not be parsed.
+local function parseListAppsArgs(args)
+    local parsedArgs = {}
+    local remainingArgs = {}
+    for i, arg in ipairs(args) do
+        if arg:sub(1, 1) == "-" then
+            if arg == "-h" or arg == "--help" then
+                parsedArgs.help = "true"
+            elseif arg == "--version" then
+                parsedArgs.version = "true"
+            else
+                return nil, nil, "Unknown command line option \"" .. arg .. "\""
+            end
+        else
+            parsedArgs.query = arg
+            for j = i + 1, #args do
+                table.insert(remainingArgs, args[j])
+            end
+            break
+        end
+    end
+    return parsedArgs, remainingArgs
+end
+
 --- Get a list of known applications from the repository.
-local function listApps()
+--- @param remainingArgs? string[] The remaining arguments after the command.
+local function listApps(remainingArgs)
+    local parsedArgs = nil
+    local query = nil
+
+    if remainingArgs then
+        parsedArgs = parseListAppsArgs(remainingArgs)
+    end
+
+    if parsedArgs then
+        if parsedArgs.help == "true" then
+            printListAppsHelp()
+            return
+        end
+        if parsedArgs.version == "true" then
+            printVersion()
+            return
+        end
+        query = parsedArgs.query
+    end
+
     local apps, appsError = getAppList()
     if apps then
-        print("Known Apps:")
-        if #apps == 0 then
+        local filteredApps = {}
+        if query then
+            for _, app in ipairs(apps) do
+                if app:find(query) then
+                    table.insert(filteredApps, app)
+                end
+            end
+        else
+            filteredApps = apps
+        end
+        print("Available Apps:")
+        if #filteredApps == 0 then
             print("  No applications available.")
         else
-            for _, app in ipairs(apps) do
+            for _, app in ipairs(filteredApps) do
                 print(" * " .. app)
             end
         end
@@ -90,17 +169,13 @@ local function printHelp()
     print("  help       Print this help information.")
     print("  version    Print the version of this program.")
     print("  list       List all known applications.")
+    print("  info       Display information about an application.")
     print("  install    Install an application.")
     print("  remove     Remove an application.")
     print("  update     Update an application.")
     print("")
     print("Copyright (c) 2024 G'lek Tarssza")
     print("All rights reserved.")
-end
-
---- Print the version of the program.
-local function printVersion()
-    print("G'lek's CC: Tweaked App Installer v0.0.1")
 end
 
 --- Parse the command line arguments.
@@ -121,13 +196,11 @@ local function parseArguments(args)
                 return nil, nil, "Unknown command line option \"" .. arg .. "\""
             end
         else
-            if parsedArgs.command then
-                return nil, nil, "Multiple commands specified"
-            end
             parsedArgs.command = arg
             for j = i + 1, #args do
                 table.insert(remainingArgs, args[j])
             end
+            break
         end
     end
     return parsedArgs, remainingArgs
@@ -142,12 +215,12 @@ local function main(args)
         return
     end
 
-    if parsedArgs.help then
+    if parsedArgs.help == "true" then
         printHelp()
         return
     end
 
-    if parsedArgs.version then
+    if parsedArgs.version == "true" then
         printVersion()
         return
     end
@@ -167,7 +240,10 @@ local function main(args)
         printVersion()
         return
     elseif parsedArgs.command == "list" then
-        listApps()
+        listApps(remainingArgs)
+        return
+    elseif parsedArgs.command == "info" then
+        printError("Error: The info command is not yet implemented")
         return
     elseif parsedArgs.command == "install" then
         printError("Error: The install command is not yet implemented")
