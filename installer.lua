@@ -10,7 +10,7 @@
 --- @return string message The error message if the request failed.
 --- @return ccTweaked.http.BinaryResponse|ccTweaked.http.Response|nil failedResponse The response object if the request failed.
 local function getRawGitHubUserContent(repo, branch, resource, headers, binary)
-    return http.get("https://raw.githubusercontent.com/" .. repo .. "/" .. branch .. "/" .. resource, headers, binary)
+    return http.get("https://raw.githubusercontent.com/" .. repo .. "/raw/" .. branch .. "/" .. resource, headers, binary)
 end
 
 --- Get a resource from a GitHub repository and parse it as a JSON object.
