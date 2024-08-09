@@ -1,0 +1,10 @@
+{
+    "name": "todo",
+    "version": "0.0.0",
+    "description": "A simple to do list app.",
+    "entrypoint": "main.lua",
+    "autoboot": true,
+    "files": [
+        "./main.lua"
+    ]
+}
