@@ -211,7 +211,7 @@ local function printShowAppInfoHelp()
 end
 
 --- Show information about an application.
---- @param args string[] The command line arguments.
+--- @param args? string[] The command line arguments.
 local function showAppInfo(args)
     local parsedArgs = nil
     local appName = nil
@@ -313,7 +313,7 @@ local function parseInstallAppArgs(args)
 end
 
 --- Install an application.
---- @param args string[] The command line arguments.
+--- @param args? string[] The command line arguments.
 local function installApp(args)
     local parsedArgs = nil
     local appName = nil
@@ -488,7 +488,7 @@ local function parseRemoveAppArgs(args)
 end
 
 --- Remove a previously installed application.
---- @param args string[] The command line arguments.
+--- @param args? string[] The command line arguments.
 local function removeApp(args)
     local parsedArgs = nil
     local appName = nil
