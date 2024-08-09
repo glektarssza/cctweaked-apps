@@ -145,7 +145,10 @@ local function main(args)
         return
     end
 
-    if parsedArgs.command == "help" then
+    if parsedArgs.command == "about" then
+        printError("Error: The about command is not yet implemented")
+        return
+    elseif parsedArgs.command == "help" then
         printHelp()
         return
     elseif parsedArgs.command == "version" then
@@ -153,6 +156,15 @@ local function main(args)
         return
     elseif parsedArgs.command == "list" then
         listApps()
+        return
+    elseif parsedArgs.command == "install" then
+        printError("Error: The install command is not yet implemented")
+        return
+    elseif parsedArgs.command == "remove" then
+        printError("Error: The remove command is not yet implemented")
+        return
+    elseif parsedArgs.command == "update" then
+        printError("Error: The update command is not yet implemented")
         return
     end
 
