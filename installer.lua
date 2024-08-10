@@ -9,6 +9,53 @@ local REPOSITORY = "cctweaked-apps"
 --- The branch to request from the repository.
 local REPO_BRANCH = "main"
 
+--- Parse a semantic version string.
+--- @param ver string The version string to parse.
+--- @return number|nil major The major version number.
+--- @return number|nil minor The minor version number.
+--- @return number|nil patch The patch version number.
+local function parseSemver(ver)
+    local major, minor, patch = ver:match("(%d+)%.(%d+)%.(%d+)")
+    return tonumber(major), tonumber(minor), tonumber(patch)
+end
+
+--- Check if two semantic versions are equal.
+--- @param ver1 string The first version to compare.
+--- @param ver2 string The second version to compare.
+--- @return boolean # Whether the versions are equal.
+local function isSemverEqual(ver1, ver2)
+    local major1, minor1, patch1 = parseSemver(ver1)
+    local major2, minor2, patch2 = parseSemver(ver2)
+    return major1 == major2 and minor1 == minor2 and patch1 == patch2
+end
+
+--- Check if one semantic version is greater than another.
+--- @param ver1 string The first version to compare.
+--- @param ver2 string The second version to compare.
+--- @return boolean # Whether the first version is greater than the second.
+local function isSemverGreater(ver1, ver2)
+    local major1, minor1, patch1 = parseSemver(ver1)
+    local major2, minor2, patch2 = parseSemver(ver2)
+    if major1 > major2 then
+        return true
+    elseif major1 == major2 then
+        if minor1 > minor2 then
+            return true
+        elseif minor1 == minor2 then
+            return patch1 > patch2
+        end
+    end
+    return false
+end
+
+--- Check if one semantic version is greater than or equal to another.
+--- @param ver1 string The first version to compare.
+--- @param ver2 string The second version to compare.
+--- @return boolean # Whether the first version is greater than or equal to the second.
+local function isSemverGreaterEqual(ver1, ver2)
+    return isSemverEqual(ver1, ver2) or isSemverGreater(ver1, ver2)
+end
+
 --- Send a GET request to the GitHub user content server for a specific raw resource.
 --- @param owner string The owner of the repository to request from.
 --- @param repo string The repository to request from.
@@ -663,6 +710,31 @@ local function updateApp(args)
         return
     end
 
+    local localManifestHandle = fs.open(fs.combine(installDir, "manifest.json"), "r")
+    if not localManifestHandle then
+        printError("Error: Failed to read local manifest file")
+        return
+    end
+
+    local localManifestData = localManifestHandle.readAll()
+    localManifestHandle.close()
+
+    if not localManifestData then
+        printError("Error: Failed to read local manifest file")
+        return
+    end
+
+    local localManifest = textutils.unserializeJSON(localManifestData)
+    if not localManifest then
+        printError("Error: Failed to parse local manifest file")
+        return
+    end
+
+    if isSemverGreaterEqual(localManifest.version, manifest.version) then
+        print("Application \"" .. appName .. "\" is already up to date")
+        return
+    end
+
     local tempDirExists = fs.exists(tempDir)
     if not tempDirExists then
         fs.makeDir(tempDir)
@@ -740,7 +812,8 @@ local function updateApp(args)
 
     fs.delete(tempDir)
 
-    print("Application \"" .. appName .. "\" has been updated to version " .. manifest.version)
+    print("Application \"" ..
+        appName .. "\" has been updated from v" .. localManifest.version .. " to v" .. manifest.version)
 end
 
 --- Print the program about information.
