@@ -6,6 +6,7 @@ A collection of apps for CC: Tweaked.
 ## Table of Contents ##
 
 * [CC: Tweaked Apps](#cc-tweaked-apps)
+    * [License](#license)
 
 ## License ##
 
