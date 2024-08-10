@@ -60,7 +60,7 @@ local function main()
             local fluidName = mapFluidTypeToName(tankInfo.fluid)
             displaySource.setCursorPos(1, y)
             local title = fluidName .. ": "
-            displaySource.write(title .. createFuelBar(displayWidth - #title - 2, tankInfo.amount / tankInfo.capacity))
+            displaySource.write(title .. createFuelBar(displayWidth - #title - 1, tankInfo.amount / tankInfo.capacity))
             y = y + 1
             if y > displayHeight then
                 break
