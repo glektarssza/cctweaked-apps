@@ -14,14 +14,9 @@ end
 --- @param level number The fuel level to represent.
 local function createFuelBar(width, level)
     local bar = ""
-    local fuelLevel = math.floor(level * width) - 1
-    for i = 1, fuelLevel - 1 do
-        bar = bar .. "\167"
-    end
-    bar = bar .. "\160"
-    for i = fuelLevel + 1, width do
-        bar = bar .. "\016"
-    end
+    local fuelLevel = math.floor(level * width)
+    bar = bar .. string.rep("\167", fuelLevel)
+    bar = bar .. string.rep("\016", width - fuelLevel)
     return bar
 end
 
