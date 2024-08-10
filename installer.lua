@@ -278,36 +278,36 @@ local function parseInstallAppArgs(args)
     local remainingArgs = {}
     local skipNext = false
     for i, arg in ipairs(args) do
+        if not skipNext then
+            if arg:sub(1, 1) == "-" then
+                if arg == "-h" or arg == "--help" then
+                    parsedArgs.help = "true"
+                elseif arg == "--version" then
+                    parsedArgs.version = "true"
+                elseif arg == "--auto-boot" then
+                    parsedArgs.autoBoot = "true"
+                elseif arg:match("--install-dir=") then
+                    parsedArgs.installDir = arg:sub(#"--install-dir=" + 1)
+                elseif arg == "--install-dir" then
+                    if not args[i + 1] then
+                        return nil, nil, "Missing value for --install-dir option"
+                    end
+                    parsedArgs.installDir = args[i + 1]
+                    skipNext = true
+                else
+                    return nil, nil, "Unknown command line option \"" .. arg .. "\""
+                end
+            else
+                parsedArgs.appName = arg
+                for j = i + 1, #args do
+                    table.insert(remainingArgs, args[j])
+                end
+                break
+            end
+        end
         if skipNext then
             skipNext = false
-            goto continue
         end
-        if arg:sub(1, 1) == "-" then
-            if arg == "-h" or arg == "--help" then
-                parsedArgs.help = "true"
-            elseif arg == "--version" then
-                parsedArgs.version = "true"
-            elseif arg == "--auto-boot" then
-                parsedArgs.autoBoot = "true"
-            elseif arg:match("--install-dir=") then
-                parsedArgs.installDir = arg:sub(#"--install-dir=" + 1)
-            elseif arg == "--install-dir" then
-                if not args[i + 1] then
-                    return nil, nil, "Missing value for --install-dir option"
-                end
-                parsedArgs.installDir = args[i + 1]
-                skipNext = true
-            else
-                return nil, nil, "Unknown command line option \"" .. arg .. "\""
-            end
-        else
-            parsedArgs.appName = arg
-            for j = i + 1, #args do
-                table.insert(remainingArgs, args[j])
-            end
-            break
-        end
-        ::continue::
     end
     return parsedArgs, remainingArgs
 end
@@ -455,34 +455,34 @@ local function parseRemoveAppArgs(args)
     local remainingArgs = {}
     local skipNext = false
     for i, arg in ipairs(args) do
+        if not skipNext then
+            if arg:sub(1, 1) == "-" then
+                if arg == "-h" or arg == "--help" then
+                    parsedArgs.help = "true"
+                elseif arg == "--version" then
+                    parsedArgs.version = "true"
+                elseif arg:match("--install-dir=") then
+                    parsedArgs.installDir = arg:sub(#"--install-dir=" + 1)
+                elseif arg == "--install-dir" then
+                    if not args[i + 1] then
+                        return nil, nil, "Missing value for --install-dir option"
+                    end
+                    parsedArgs.installDir = args[i + 1]
+                    skipNext = true
+                else
+                    return nil, nil, "Unknown command line option \"" .. arg .. "\""
+                end
+            else
+                parsedArgs.appName = arg
+                for j = i + 1, #args do
+                    table.insert(remainingArgs, args[j])
+                end
+                break
+            end
+        end
         if skipNext then
             skipNext = false
-            goto continue
         end
-        if arg:sub(1, 1) == "-" then
-            if arg == "-h" or arg == "--help" then
-                parsedArgs.help = "true"
-            elseif arg == "--version" then
-                parsedArgs.version = "true"
-            elseif arg:match("--install-dir=") then
-                parsedArgs.installDir = arg:sub(#"--install-dir=" + 1)
-            elseif arg == "--install-dir" then
-                if not args[i + 1] then
-                    return nil, nil, "Missing value for --install-dir option"
-                end
-                parsedArgs.installDir = args[i + 1]
-                skipNext = true
-            else
-                return nil, nil, "Unknown command line option \"" .. arg .. "\""
-            end
-        else
-            parsedArgs.appName = arg
-            for j = i + 1, #args do
-                table.insert(remainingArgs, args[j])
-            end
-            break
-        end
-        ::continue::
     end
     return parsedArgs, remainingArgs
 end
@@ -547,42 +547,42 @@ local function parseUpdateAppArgs(args)
     local remainingArgs = {}
     local skipNext = false
     for i, arg in ipairs(args) do
+        if not skipNext then
+            if arg:sub(1, 1) == "-" then
+                if arg == "-h" or arg == "--help" then
+                    parsedArgs.help = "true"
+                elseif arg == "--version" then
+                    parsedArgs.version = "true"
+                elseif arg:match("--temp-dir=") then
+                    parsedArgs.tempDir = arg:sub(#"--temp-dir=" + 1)
+                elseif arg == "--temp-dir" then
+                    if not args[i + 1] then
+                        return nil, nil, "Missing value for --temp-dir option"
+                    end
+                    parsedArgs.tempDir = args[i + 1]
+                    skipNext = true
+                elseif arg:match("--install-dir=") then
+                    parsedArgs.installDir = arg:sub(#"--install-dir=" + 1)
+                elseif arg == "--install-dir" then
+                    if not args[i + 1] then
+                        return nil, nil, "Missing value for --install-dir option"
+                    end
+                    parsedArgs.installDir = args[i + 1]
+                    skipNext = true
+                else
+                    return nil, nil, "Unknown command line option \"" .. arg .. "\""
+                end
+            else
+                parsedArgs.appName = arg
+                for j = i + 1, #args do
+                    table.insert(remainingArgs, args[j])
+                end
+                break
+            end
+        end
         if skipNext then
             skipNext = false
-            goto continue
         end
-        if arg:sub(1, 1) == "-" then
-            if arg == "-h" or arg == "--help" then
-                parsedArgs.help = "true"
-            elseif arg == "--version" then
-                parsedArgs.version = "true"
-            elseif arg:match("--temp-dir=") then
-                parsedArgs.tempDir = arg:sub(#"--temp-dir=" + 1)
-            elseif arg == "--temp-dir" then
-                if not args[i + 1] then
-                    return nil, nil, "Missing value for --temp-dir option"
-                end
-                parsedArgs.tempDir = args[i + 1]
-                skipNext = true
-            elseif arg:match("--install-dir=") then
-                parsedArgs.installDir = arg:sub(#"--install-dir=" + 1)
-            elseif arg == "--install-dir" then
-                if not args[i + 1] then
-                    return nil, nil, "Missing value for --install-dir option"
-                end
-                parsedArgs.installDir = args[i + 1]
-                skipNext = true
-            else
-                return nil, nil, "Unknown command line option \"" .. arg .. "\""
-            end
-        else
-            parsedArgs.appName = arg
-            for j = i + 1, #args do
-                table.insert(remainingArgs, args[j])
-            end
-            break
-        end
-        ::continue::
     end
     return parsedArgs, remainingArgs
 end
