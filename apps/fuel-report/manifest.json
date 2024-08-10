@@ -1,0 +1,11 @@
+{
+    "id": "fuel-report",
+    "name": "Fuel Reporter",
+    "version": "0.0.0",
+    "description": "Reports fuel levels of tanks.",
+    "entrypoint": "main.lua",
+    "autoBoot": true,
+    "files": [
+        "./main.lua"
+    ]
+}
