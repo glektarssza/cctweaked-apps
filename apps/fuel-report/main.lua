@@ -16,7 +16,7 @@ local function createFuelBar(width, level)
     local bar = ""
     local fuelLevel = math.floor(level * width)
     bar = bar .. string.rep("\167", fuelLevel)
-    bar = bar .. string.rep("\016", width - fuelLevel)
+    bar = bar .. string.rep("\127", width - fuelLevel)
     return bar
 end
 
