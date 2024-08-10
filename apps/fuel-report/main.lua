@@ -14,10 +14,11 @@ end
 --- @param level number The fuel level to represent.
 local function createFuelBar(width, level)
     local bar = ""
-    local fuelLevel = math.floor(level * width)
-    for i = 1, fuelLevel do
+    local fuelLevel = math.floor(level * width) - 1
+    for i = 1, fuelLevel - 1 do
         bar = bar .. "\167"
     end
+    bar = bar .. "\160"
     for i = fuelLevel + 1, width do
         bar = bar .. "\016"
     end
@@ -57,7 +58,7 @@ local function main()
         local displayWidth, displayHeight = displaySource.getSize()
         displaySource.clear()
         displaySource.setCursorPos(1, 1)
-        displaySource.write(padTitle("Fuel Report", displayWidth, "#"))
+        displaySource.write(padTitle(" Fuel Report ", displayWidth, "#"))
         local y = 2
         for _, tank in ipairs(tanks) do
             local tankInfo = tank.getInfo()
